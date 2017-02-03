@@ -1,0 +1,10 @@
+[Unit]
+Description=Queueing Daemon for msmtp
+
+[Service]
+Type=dbus
+BusName=com.github.dcbaker.msmtpq
+ExecStart=/usr/bin/msmtpqd
+
+[Install]
+WantedBy=multi-user.target
