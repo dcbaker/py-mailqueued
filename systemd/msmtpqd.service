@@ -3,7 +3,7 @@ Description=Queueing Daemon for msmtp
 
 [Service]
 Type=dbus
-BusName=com.github.dcbaker.msmtpq
+BusName=com.github.dcbaker.msmtpq.Message
 ExecStart=/usr/bin/msmtpqd
 
 [Install]
