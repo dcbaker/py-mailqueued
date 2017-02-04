@@ -11,7 +11,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='msmtpqd',
-    version='0.1.0',
+    version='0.1.1',
     description='A queueing daemon for emails',
     long_description=long_description,
     url='https://github.com/dcbaker/msmtpqd',
@@ -39,6 +39,6 @@ setup(
         'scripts/msmtp-queue',
     ],
     data_files=[
-        ('/lib/systemd/user/', ['systemd/msmtpqd.service']),
+        ('/usr/lib/systemd/user/', ['systemd/msmtpqd.service']),
     ],
 )
