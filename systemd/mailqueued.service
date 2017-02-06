@@ -5,7 +5,7 @@ Wants=NetworkManager.service
 
 [Service]
 Type=dbus
-BusName=com.github.dcbaker.msmtpq.Message
+BusName=com.github.dcbaker.mailqueued.Message
 ExecStart=/usr/bin/mailqueued
 
 [Install]
