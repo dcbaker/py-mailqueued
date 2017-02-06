@@ -29,8 +29,9 @@ setup(
         'Topic :: Communications :: Email :: Mail Transport Agents',
     ],
     install_requires=[
-        'attr',
         'appdirs',
+        'attr',
+        'gbulb',
         'pydbus',
     ],
     keywords='email',

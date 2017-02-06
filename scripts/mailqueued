@@ -15,17 +15,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import asyncio
 import enum
 import json
 import os
-import subprocess
 import textwrap
 import uuid
 
-from gi.repository import GLib
 import appdirs
 import attr
+import gbulb
 import pydbus
+
+gbulb.install()
 
 
 _DIRS = appdirs.AppDirs('mailqueued')
@@ -50,34 +52,34 @@ class Manager(object):
                     validator=attr.validators.instance_of(NMState))
 
     def __attrs_post_init__(self):
-        self.flush_queue()
+        if not self.queueing:
+            asyncio.ensure_future(self.flush_queue())
 
     @property
     def queueing(self):
         return self.state is not NMState.connected_global
 
     def handle_state_change(self, state):
-        new_state = NMState(state)
-        if new_state is NMState.connected_global:
+        self.state = NMState(state)
+        if self.state is NMState.connected_global:
             print('Network online: Now sending messages')
         else:
             print('Network offline: Now queueing messages')
-        if self.queueing and new_state is NMState.connected_global:
-            self.flush_queue()
-        self.state = new_state
+        if self.state is NMState.connected_global:
+            asyncio.ensure_future(self.flush_queue())
 
-    def flush_queue(self):
+    async def flush_queue(self):
         for message in os.listdir(_DIRS.user_data_dir):
-            loaded = json.load(message)
-            try:
-                subprocess.run(' '.split(loaded['command']),
-                               input=loaded['message'].encode('utf-8'))
-            except subprocess.CalledProcessError:
-                print('Failed to send message')
-            else:
-                os.unlink(message)
+            name = os.path.join(_DIRS.user_data_dir, message)
+            with open(name, 'r') as f:
+                loaded = json.load(f)
+            proc = await asyncio.create_subprocess_exec(
+                *loaded['command'].split(' '),
+                stdin=asyncio.subprocess.PIPE)
+            await proc.communicate(input=loaded['message'].encode('utf-8'))
+            os.unlink(name)
 
-    def send_or_queue(self, command, message):
+    async def send_or_queue(self, command, message):
         if self.queueing:
             name = os.path.join(_DIRS.user_data_dir,
                                 str(uuid.uuid4()) + '.json')
@@ -85,7 +87,10 @@ class Manager(object):
                 json.dump({'command': command, 'message': message}, f)
         else:
             # TODO: Handle sending failure
-            subprocess.run(command.split(' '), input=message.encode('utf-8'))
+            proc = await asyncio.create_subprocess_exec(
+                *command.split(' '),
+                stdin=asyncio.subprocess.PIPE)
+            await proc.communicate(input=message.encode('utf-8'))
 
 
 @attr.s(cmp=False, hash=False)
@@ -104,14 +109,14 @@ class Listener(object):
     manager = attr.ib()
 
     def Send(self, command, message):
-        self.manager.send_or_queue(command, message)
+        asyncio.ensure_future(self.manager.send_or_queue(command, message))
 
 
 def main():
     if not os.path.exists(_DIRS.user_data_dir):
         os.makedirs(_DIRS.user_data_dir)
 
-    loop = GLib.MainLoop()
+    loop = asyncio.get_event_loop()
 
     bus = pydbus.SystemBus()
     nm = bus.get('.NetworkManager')
@@ -122,9 +127,9 @@ def main():
     pub = bus.publish("com.github.dcbaker.mailqueued.Message", Listener(manager))
 
     try:
-        loop.run()
+        loop.run_forever()
     finally:
-        loop.quit()
+        loop.stop()
         pub.unpublish()
 
 
