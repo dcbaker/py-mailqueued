@@ -1,2 +1,2 @@
 include LICENSE
-include systemd/msmtpqd.service
+include systemd/mailqueued.service
