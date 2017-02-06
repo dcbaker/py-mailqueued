@@ -1,5 +1,7 @@
 [Unit]
 Description=Queueing Daemon for msmtp
+After=NetworkManager.service
+Wants=NetworkManager.service
 
 [Service]
 Type=dbus

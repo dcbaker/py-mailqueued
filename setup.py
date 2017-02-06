@@ -10,11 +10,11 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='msmtpqd',
-    version='0.1.3',
+    name='py-mailqueued',
+    version='0.2.0',
     description='A queueing daemon for emails',
     long_description=long_description,
-    url='https://github.com/dcbaker/msmtpqd',
+    url='https://github.com/dcbaker/py-mailqueued',
     author='Dylan Baker',
     author_email='dylan@pnwbakers.com',
     license='GPLv3+',
@@ -35,10 +35,10 @@ setup(
     ],
     keywords='email',
     scripts=[
-        'scripts/msmtpqd',
-        'scripts/msmtp-queue',
+        'scripts/mailqueued',
+        'scripts/mail-queue',
     ],
     data_files=[
-        ('/usr/lib/systemd/user/', ['systemd/msmtpqd.service']),
+        ('/usr/lib/systemd/user/', ['systemd/mailqueued.service']),
     ],
 )
