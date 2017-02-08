@@ -1,5 +1,5 @@
 [Unit]
-Description=Queueing Daemon for msmtp
+Description=Mail queueing daemon
 After=NetworkManager.service
 Wants=NetworkManager.service
 
