@@ -98,7 +98,7 @@ class Listener(object):
 
     dbus = textwrap.dedent("""\
         <node>
-          <interface name="com.github.dcbaker.mailqueued.Message">
+          <interface name="com.github.dcbaker.mailqueued1.Message">
             <method name="Send">
               <arg type="s" name="command" direction="in"/>
               <arg type="s" name="message" direction="in"/>
@@ -124,7 +124,7 @@ def main():
     nm.StateChanged.connect(manager.handle_state_change)
 
     bus = pydbus.SessionBus()
-    pub = bus.publish("com.github.dcbaker.mailqueued.Message", Listener(manager))
+    pub = bus.publish("com.github.dcbaker.mailqueued1.Message", Listener(manager))
 
     try:
         loop.run_forever()

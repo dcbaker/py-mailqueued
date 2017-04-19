@@ -24,7 +24,7 @@ import pydbus
 
 def main():
     bus = pydbus.SessionBus()
-    msmtpqd = bus.get('com.github.dcbaker.mailqueued.Message')
+    msmtpqd = bus.get('com.github.dcbaker.mailqueued1.Message')
     msmtpqd.Send(' '.join(sys.argv[1:]), sys.stdin.read())
 
 
