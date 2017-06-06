@@ -89,19 +89,37 @@ class Manager(object):
             await proc.communicate(input=loaded['message'].encode('utf-8'))
             os.unlink(name)
 
-    async def send_or_queue(self, command: str, message: str):
+    async def dispatch(self, command: str, message: str) -> None:
         """Send or queue a message."""
         if self.queueing:
-            name = os.path.join(_DIRS.user_data_dir,
-                                str(uuid.uuid4()) + '.json')
-            with open(name, 'w') as f:
-                json.dump({'command': command, 'message': message}, f)
+            self.queue(command, message)
         else:
-            # TODO: Handle sending failure
-            proc = await asyncio.create_subprocess_exec(
-                *command.split(' '),
-                stdin=asyncio.subprocess.PIPE)
-            await proc.communicate(input=message.encode('utf-8'))
+            for _ in range(5):
+                success = await self.send(command, message)
+                if success:
+                    break
+            else:
+                self.queue(command, message)
+
+    @staticmethod
+    def queue(command: str, message: str) -> None:
+        """Write a message to disk to be sent later."""
+        name = os.path.join(_DIRS.user_data_dir,
+                            str(uuid.uuid4()) + '.json')
+        with open(name, 'w') as f:
+            json.dump({'command': command, 'message': message}, f)
+
+    async def send(self, command: str, message: str) -> bool:
+        """Send a message.
+
+        Returns True of the mail was sent successfully (returncode 0) otherwise
+        False.
+        """
+        proc = await asyncio.create_subprocess_exec(
+            *command.split(' '),
+            stdin=asyncio.subprocess.PIPE)
+        await proc.communicate(input=message.encode('utf-8'))
+        return proc.returncode == 0
 
 
 @attr.s(cmp=False, hash=False)
@@ -122,7 +140,7 @@ class Listener(object):
 
     def Send(self, command: str, message: str) -> None:  # pylint: disable=invalid-name
         """Public interface for sending a message."""
-        asyncio.ensure_future(self.manager.send_or_queue(command, message))
+        asyncio.ensure_future(self.manager.dispatch(command, message))
 
 
 def main() -> None:
