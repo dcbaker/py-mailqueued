@@ -82,12 +82,16 @@ class Manager(object):
             name = os.path.join(_DIRS.user_data_dir, message)
             with open(name, 'r') as f:
                 loaded = json.load(f)
+
             proc = await asyncio.create_subprocess_exec(
                 *loaded['command'].split(' '),
                 stdin=asyncio.subprocess.PIPE)
-            # TODO: error handling
             await proc.communicate(input=loaded['message'].encode('utf-8'))
-            os.unlink(name)
+
+            if proc.returncode == 0:
+                os.unlink(name)
+            else:
+                print('Error sending: {}'.format(name))
 
     async def dispatch(self, command: str, message: str) -> None:
         """Send or queue a message."""
