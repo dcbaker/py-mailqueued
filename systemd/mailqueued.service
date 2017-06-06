@@ -1,10 +1,8 @@
 [Unit]
-After=NetworkManager.service
-Requires=NetworkManager.service
 Description=Mail queueing daemon
 
 [Service]
 ExecStart=/usr/bin/mailqueued
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
