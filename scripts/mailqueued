@@ -47,19 +47,27 @@ class NMState(enum.Enum):
 
 @attr.s(cmp=False, hash=False)
 class Manager(object):
+    """Class that manages whether to send or queue messages."""
 
     state = attr.ib(default=NMState.unknown,
                     validator=attr.validators.instance_of(NMState))
 
-    def __attrs_post_init__(self):
+    def __attrs_post_init__(self) -> bool:
         if not self.queueing:
             asyncio.ensure_future(self.flush_queue())
 
     @property
-    def queueing(self):
+    def queueing(self) -> bool:
         return self.state != NMState.connected_global
 
-    def handle_state_change(self, state):
+    def handle_state_change(self, state: int) -> None:
+        """Signal Handler for NetworkManager state.
+
+        This method is registered with NetworkManager over dbus. When the
+        NetworkManager state changes this will be called, and it will change
+        update self.state. If the state changes to connected_global it will
+        also schedule to flush all queued mail.
+        """
         self.state = NMState(state)
         if self.state == NMState.connected_global:
             print('Network online: Now sending messages')
@@ -68,7 +76,8 @@ class Manager(object):
         if self.state == NMState.connected_global:
             asyncio.ensure_future(self.flush_queue())
 
-    async def flush_queue(self):
+    async def flush_queue(self) -> bool:
+        """Send all queued messages."""
         for message in os.listdir(_DIRS.user_data_dir):
             name = os.path.join(_DIRS.user_data_dir, message)
             with open(name, 'r') as f:
@@ -76,10 +85,12 @@ class Manager(object):
             proc = await asyncio.create_subprocess_exec(
                 *loaded['command'].split(' '),
                 stdin=asyncio.subprocess.PIPE)
+            # TODO: error handling
             await proc.communicate(input=loaded['message'].encode('utf-8'))
             os.unlink(name)
 
-    async def send_or_queue(self, command, message):
+    async def send_or_queue(self, command: str, message: str):
+        """Send or queue a message."""
         if self.queueing:
             name = os.path.join(_DIRS.user_data_dir,
                                 str(uuid.uuid4()) + '.json')
@@ -95,6 +106,7 @@ class Manager(object):
 
 @attr.s(cmp=False, hash=False)
 class Listener(object):
+    """Sits on dbus and listens for incoming messages."""
 
     dbus = textwrap.dedent("""\
         <node>
@@ -108,11 +120,13 @@ class Listener(object):
 
     manager = attr.ib()
 
-    def Send(self, command, message):
+    def Send(self, command: str, message: str) -> None:  # pylint: disable=invalid-name
+        """Public interface for sending a message."""
         asyncio.ensure_future(self.manager.send_or_queue(command, message))
 
 
-def main():
+def main() -> None:
+    """Main function."""
     if not os.path.exists(_DIRS.user_data_dir):
         os.makedirs(_DIRS.user_data_dir)
 
