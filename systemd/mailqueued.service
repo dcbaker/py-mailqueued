@@ -1,9 +1,9 @@
 [Unit]
+After=NetworkManager.service
+Requires=NetworkManager.service
 Description=Mail queueing daemon
 
 [Service]
-Type=dbus
-BusName=com.github.dcbaker.mailqueued1.Message
 ExecStart=/usr/bin/mailqueued
 
 [Install]
