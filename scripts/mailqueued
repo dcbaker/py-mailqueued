@@ -104,6 +104,7 @@ class Manager(object):
                     break
             else:
                 self.queue(command, message)
+                print('Warning: Failed to send message, queueing')
                 await asyncio.sleep(120)  # wait two minutes and then try to flush the queue
                 if not self.queueing:
                     await self.flush_queue()
