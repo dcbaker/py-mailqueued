@@ -57,15 +57,15 @@ class Manager(object):
 
     @property
     def queueing(self):
-        return self.state is not NMState.connected_global
+        return self.state != NMState.connected_global
 
     def handle_state_change(self, state):
         self.state = NMState(state)
-        if self.state is NMState.connected_global:
+        if self.state == NMState.connected_global:
             print('Network online: Now sending messages')
         else:
             print('Network offline: Now queueing messages')
-        if self.state is NMState.connected_global:
+        if self.state == NMState.connected_global:
             asyncio.ensure_future(self.flush_queue())
 
     async def flush_queue(self):
