@@ -11,7 +11,7 @@ status. This has the advantage that most Linux desktop/laptop setups use
 NetworkManager and dbus, and isn't bound to silly tricks like pinging (which
 make be blocked by a proxy or firewall) or resolving a hostname (which is
 not guaranteed to work). It also means that the daemon switches modes as soon
-as NetworkManager switches to or from full network access. The downide is of
+as NetworkManager switches to or from full network access. The downside is of
 course that NetworkManager must be managing all of your network interfaces.
 
 Usage
