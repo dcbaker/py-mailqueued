@@ -123,9 +123,12 @@ class Manager(object):
         Returns True of the mail was sent successfully (returncode 0) otherwise
         False.
         """
-        proc = await asyncio.create_subprocess_exec(
-            *command.split(' '),
-            stdin=asyncio.subprocess.PIPE)
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *command.split(' '),
+                stdin=asyncio.subprocess.PIPE)
+        except FileNotFoundError:
+            return False
         await proc.communicate(input=message.encode('utf-8'))
         return proc.returncode == 0
 
