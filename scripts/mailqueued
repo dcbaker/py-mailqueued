@@ -51,6 +51,7 @@ class Manager(object):
 
     state = attr.ib(default=NMState.unknown,
                     validator=attr.validators.instance_of(NMState))
+    flush_lock = attr.ib(default=attr.Factory(asyncio.Lock), init=False)
 
     def __attrs_post_init__(self) -> bool:
         if not self.queueing:
@@ -78,20 +79,21 @@ class Manager(object):
 
     async def flush_queue(self) -> bool:
         """Send all queued messages."""
-        for message in os.listdir(_DIRS.user_data_dir):
-            name = os.path.join(_DIRS.user_data_dir, message)
-            with open(name, 'r') as f:
-                loaded = json.load(f)
+        async with self.flush_lock:
+            for message in os.listdir(_DIRS.user_data_dir):
+                name = os.path.join(_DIRS.user_data_dir, message)
+                with open(name, 'r') as f:
+                    loaded = json.load(f)
 
-            proc = await asyncio.create_subprocess_exec(
-                *loaded['command'].split(' '),
-                stdin=asyncio.subprocess.PIPE)
-            await proc.communicate(input=loaded['message'].encode('utf-8'))
+                proc = await asyncio.create_subprocess_exec(
+                    *loaded['command'].split(' '),
+                    stdin=asyncio.subprocess.PIPE)
+                await proc.communicate(input=loaded['message'].encode('utf-8'))
 
-            if proc.returncode == 0:
-                os.unlink(name)
-            else:
-                print('Error sending: {}'.format(name))
+                if proc.returncode == 0:
+                    os.unlink(name)
+                else:
+                    print('Error sending: {}'.format(name))
 
     async def dispatch(self, command: str, message: str) -> None:
         """Send or queue a message."""
