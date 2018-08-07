@@ -79,7 +79,7 @@ class Manager(object):
         else:
             print('Network offline: Now queueing messages')
 
-    async def flush_queue(self) -> bool:
+    async def flush_queue(self) -> None:
         """Send all queued messages."""
         try:
             async with self.flush_lock:
