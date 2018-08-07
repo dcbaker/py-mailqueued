@@ -85,10 +85,14 @@ class Manager(object):
                 with open(name, 'r') as f:
                     loaded = json.load(f)
 
-                proc = await asyncio.create_subprocess_exec(
-                    *loaded['command'].split(' '),
-                    stdin=asyncio.subprocess.PIPE)
-                await proc.communicate(input=loaded['message'].encode('utf-8'))
+                try:
+                    proc = await asyncio.create_subprocess_exec(
+                        *loaded['command'].split(' '),
+                        stdin=asyncio.subprocess.PIPE)
+                    await proc.communicate(input=loaded['message'].encode('utf-8'))
+                except Exception as e:
+                    print('Error sending: {}'.format(name))
+                    continue
 
                 if proc.returncode == 0:
                     os.unlink(name)
