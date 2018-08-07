@@ -52,10 +52,11 @@ class Manager(object):
     state = attr.ib(default=NMState.unknown,
                     validator=attr.validators.instance_of(NMState))
     flush_lock = attr.ib(default=attr.Factory(asyncio.Lock), init=False)
+    flush_task = attr.ib(default=None, init=False)
 
     def __attrs_post_init__(self) -> bool:
         if not self.queueing:
-            asyncio.ensure_future(self.flush_queue())
+            self.flush_task = asyncio.ensure_future(self.flush_queue())
 
     @property
     def queueing(self) -> bool:
@@ -72,31 +73,39 @@ class Manager(object):
         self.state = NMState(state)
         if self.state is NMState.connected_global:
             print('Network online: Now sending messages')
-            asyncio.ensure_future(self.flush_queue())
+            if self.flush_task is not None:
+                self.flush_task.cancel()
+            self.flush_task = asyncio.ensure_future(self.flush_queue())
         else:
             print('Network offline: Now queueing messages')
 
     async def flush_queue(self) -> bool:
         """Send all queued messages."""
-        async with self.flush_lock:
-            for message in os.listdir(_DIRS.user_data_dir):
-                name = os.path.join(_DIRS.user_data_dir, message)
-                with open(name, 'r') as f:
-                    loaded = json.load(f)
+        try:
+            async with self.flush_lock:
+                for message in os.listdir(_DIRS.user_data_dir):
+                    name = os.path.join(_DIRS.user_data_dir, message)
+                    with open(name, 'r') as f:
+                        loaded = json.load(f)
 
-                try:
-                    proc = await asyncio.create_subprocess_exec(
-                        *loaded['command'].split(' '),
-                        stdin=asyncio.subprocess.PIPE)
-                    await proc.communicate(input=loaded['message'].encode('utf-8'))
-                except Exception as e:
-                    print('Error sending: {}'.format(name))
-                    continue
+                    try:
+                        proc = await asyncio.create_subprocess_exec(
+                            *loaded['command'].split(' '),
+                            stdin=asyncio.subprocess.PIPE)
+                        await proc.communicate(input=loaded['message'].encode('utf-8'))
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception as e:
+                        print('Error sending: {}'.format(name))
+                        continue
 
-                if proc.returncode == 0:
-                    os.unlink(name)
-                else:
-                    print('Error sending: {}'.format(name))
+                    if proc.returncode == 0:
+                        os.unlink(name)
+                    else:
+                        print('Error sending: {}'.format(name))
+        except asyncio.CancelledError:
+            pass
+        self.flush_task = None
 
     async def dispatch(self, command: str, message: str) -> None:
         """Send or queue a message."""
