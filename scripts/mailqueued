@@ -97,6 +97,7 @@ class Manager(object):
                         raise
                     except Exception as e:
                         print('Error sending: {}'.format(name))
+                        print(e)
                         continue
 
                     if proc.returncode == 0:
