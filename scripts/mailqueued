@@ -70,12 +70,11 @@ class Manager(object):
         also schedule to flush all queued mail.
         """
         self.state = NMState(state)
-        if self.state == NMState.connected_global:
+        if self.state is NMState.connected_global:
             print('Network online: Now sending messages')
+            asyncio.ensure_future(self.flush_queue())
         else:
             print('Network offline: Now queueing messages')
-        if self.state == NMState.connected_global:
-            asyncio.ensure_future(self.flush_queue())
 
     async def flush_queue(self) -> bool:
         """Send all queued messages."""
